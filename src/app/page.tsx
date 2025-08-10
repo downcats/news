@@ -1,46 +1,15 @@
 "use client";
 
 import useSWR from "swr";
+import HeaderBar from "@/components/HeaderBar";
+import Sidebar from "@/components/Sidebar";
+import GroupCard from "@/components/GroupCard";
+import type { HeadlineGroup } from "@/types/news";
 import { useTheme } from "next-themes";
-import {
-  Box,
-  Container,
-  Heading,
-  HStack,
-  VStack,
-  Text,
-  Link,
-  Badge,
-  Skeleton,
-  IconButton,
-  Spacer,
-  Input,
-  Card,
-  Collapsible,
-  Separator,
-  Grid,
-  SimpleGrid,
-  Button,
-  Sticky,
-  Alert,
-} from "@chakra-ui/react";
+import { Box, Container, HStack, VStack, Text, Badge, Skeleton, Grid, SimpleGrid, Button, Card } from "@chakra-ui/react";
 import { useEffect, useMemo, useState } from "react";
 
-type NewsItem = {
-  id: string;
-  source: string;
-  title: string;
-  url: string;
-  publishedAt?: string;
-  headline: string;
-};
-
-type HeadlineGroup = {
-  id: string;
-  title: string;
-  items: NewsItem[];
-  topic: string;
-};
+// types are in src/types/news.ts
 
 const fetcher = (url: string) => fetch(url).then((r) => r.json());
 
@@ -70,10 +39,7 @@ export default function Home() {
   const toggleSource = (value: string) =>
     setSelectedSources((prev) => toggleSourceValue(prev, value));
 
-  const allTopics = useMemo(() => {
-    const set = new Set<string>((data?.groups ?? []).map((g) => g.topic));
-    return ["All", ...Array.from(set).sort()];
-  }, [data?.groups]);
+  // topics are computed inside Sidebar
 
   const groups = useMemo(() => {
     const list = data?.groups ?? [];
@@ -115,114 +81,29 @@ export default function Home() {
 
   return (
     <Container maxW="7xl" py={6}>
-      <HStack mb={6}>
-        <Heading size="lg">News Digest</Heading>
-        <Spacer />
-        <Text color="fg.muted" fontSize="sm">
-          {isMounted && data?.generatedAt ? `Updated ${new Date(data.generatedAt).toLocaleTimeString()}` : ""}
-        </Text>
-        <IconButton
-          aria-label="Toggle theme"
-          size="sm"
-          variant="subtle"
-          onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
-        >
-          {isMounted ? (theme === "dark" ? "Light" : "Dark") : "Theme"}
-        </IconButton>
-        <IconButton
-          aria-label="Refresh"
-          size="sm"
-          variant="subtle"
-          onClick={() => mutate()}
-          disabled={isValidating}
-        >
-          {isValidating ? "Refreshing…" : "Refresh"}
-        </IconButton>
-      </HStack>
+      <HeaderBar
+        updatedAt={data?.generatedAt}
+        isMounted={isMounted}
+        isValidating={isValidating}
+        onRefresh={() => mutate()}
+        themeLabel={theme === "dark" ? "Light" : "Dark"}
+        onToggleTheme={() => setTheme(theme === "dark" ? "light" : "dark")}
+      />
 
       <Grid templateColumns={{ base: "1fr", xl: "320px 1fr" }} gap={8} alignItems="start">
         {/* Sidebar (independently scrollable) */}
-        <Box
-          position={{ base: "static", xl: "sticky" }}
-          top="6"
-          maxH={{ base: "auto", xl: "calc(100vh - 72px)" }}
-          overflowY={{ base: "visible", xl: "auto" }}
-          pr={{ base: 0, xl: 2 }}
-        >
-          <Card.Root variant="outline">
-            <Card.Header>
-              <Card.Title>Browse</Card.Title>
-            </Card.Header>
-            <Card.Body>
-              <VStack align="stretch" gap={3}>
-                <Input
-                  placeholder="Search headlines…"
-                  value={query}
-                  onChange={(e) => setQuery(e.target.value)}
-                />
-                <Separator />
-                <Heading size="xs">Topics</Heading>
-                <VStack align="stretch" gap={1}>
-                  {allTopics.map((t) => (
-                    <Button
-                      key={t}
-                      variant={t === selectedTopic ? "solid" : "ghost"}
-                      colorPalette={t === selectedTopic ? topicToPalette(t) : undefined}
-                      justifyContent="space-between"
-                      onClick={() => setSelectedTopic(t)}
-                    >
-                      <Text>{t}</Text>
-                      {t !== "All" && (
-                        <Badge>{(data?.groups ?? []).filter((g) => g.topic === t).length}</Badge>
-                      )}
-                    </Button>
-                  ))}
-                </VStack>
-                <Separator />
-                <Heading size="xs">Sources</Heading>
-                <VStack align="stretch" gap={1}>
-                  <HStack>
-                    <Button
-                      size="xs"
-                      variant="subtle"
-                      onClick={() => setSelectedSources(new Set(allSources))}
-                    >
-                      All
-                    </Button>
-                    <Button size="xs" variant="ghost" onClick={() => setSelectedSources(new Set())}>
-                      None
-                    </Button>
-                  </HStack>
-                  {allSources.map((s) => {
-                    const active = selectedSources.size === 0 || selectedSources.has(s);
-                    return (
-                      <HStack key={s} justify="space-between">
-                        <HStack>
-                          <img
-                            src={`https://www.google.com/s2/favicons?domain=${encodeURIComponent(
-                              extractDomainFromSource(s)
-                            )}&sz=32`}
-                            alt=""
-            width={16}
-            height={16}
-                            style={{ borderRadius: 4 }}
-                          />
-                          <Text>{s}</Text>
-                        </HStack>
-                        <Button
-                          size="xs"
-                          variant={active ? "solid" : "outline"}
-                          onClick={() => toggleSource(s)}
-                        >
-                          {active ? "On" : "Off"}
-                        </Button>
-                      </HStack>
-                    );
-                  })}
-                </VStack>
-              </VStack>
-            </Card.Body>
-          </Card.Root>
+        <Box position={{ base: "static", xl: "sticky" }} top="6" maxH={{ base: "auto", xl: "calc(100vh - 72px)" }} overflowY={{ base: "visible", xl: "auto" }} pr={{ base: 0, xl: 2 }}>
+          <Sidebar
+            query={query}
+            setQuery={setQuery}
+            selectedTopic={selectedTopic}
+            setSelectedTopic={setSelectedTopic}
+            selectedSources={selectedSources}
+            setSelectedSources={setSelectedSources}
+            groups={data?.groups ?? []}
+            allSources={allSources}
+            toggleSource={toggleSource}
+          />
         </Box>
 
         {/* Main content */}
@@ -263,106 +144,7 @@ export default function Home() {
             <VStack align="stretch" gap={6}>
               <SimpleGrid columns={{ base: 1, xl: 2 }} gap={6}>
                 {groupsBySource.map((group) => (
-                  <Card.Root
-                    key={group.id}
-                    variant="elevated"
-                    size="lg"
-                    colorPalette={topicToPalette(group.topic)}
-                  >
-                    <Card.Header>
-                      <VStack align="stretch" gap={2}>
-                        <HStack>
-                          <Badge>{group.topic}</Badge>
-                          <Spacer />
-                          <Badge>{group.items.length}</Badge>
-                        </HStack>
-                        <Alert.Root status="info" variant="subtle">
-                          <Alert.Indicator />
-                          <Alert.Content>
-                            <Alert.Title fontSize="sm">AI headline</Alert.Title>
-                            <Alert.Description fontSize="md" lineHeight="1.6">
-                              {group.title}
-                            </Alert.Description>
-                          </Alert.Content>
-                        </Alert.Root>
-                      </VStack>
-                    </Card.Header>
-                    <Card.Body>
-                      <VStack align="stretch" gap={4}>
-                        {group.items.slice(0, 2).map((item, idx) => (
-                          <Box key={item.id}>
-                            <VStack align="stretch" gap={1}>
-                              <Link
-                                href={item.url}
-          target="_blank"
-          rel="noopener noreferrer"
-                                fontSize="md"
-                                fontWeight="semibold"
-                                lineHeight="1.6"
-                              >
-                                {item.title}
-                              </Link>
-                              <HStack gap={2}>
-                                <Badge colorPalette="blue">{item.source}</Badge>
-                                <Text color="fg.muted" fontSize="xs">
-                                  {extractDomain(item.url)}
-                                </Text>
-                                <Spacer />
-                                <IconButton asChild aria-label="Open" size="xs" variant="subtle">
-                                  <Link href={item.url} target="_blank" rel="noopener noreferrer">
-                                    Read
-                                  </Link>
-                                </IconButton>
-                              </HStack>
-                            </VStack>
-                            {idx < Math.min(2, group.items.length) - 1 && <Separator my={3} />}
-                          </Box>
-                        ))}
-                      </VStack>
-                      {group.items.length > 2 && (
-                        <Collapsible.Root>
-                          <Collapsible.Trigger asChild>
-                            <Button mt={4} size="sm" variant="subtle" width="full">
-                              Show {group.items.length - 2} more
-                            </Button>
-                          </Collapsible.Trigger>
-                          <Collapsible.Content>
-                            <VStack align="stretch" gap={3} mt={3}>
-                              {group.items.slice(2).map((item, idx) => (
-                                <Box key={item.id}>
-                                  <VStack align="stretch" gap={1}>
-                                    <Link
-                                      href={item.url}
-          target="_blank"
-          rel="noopener noreferrer"
-                                      fontSize="md"
-                                      fontWeight="semibold"
-                                      lineHeight="1.6"
-                                    >
-                                      {item.title}
-                                    </Link>
-                                    <HStack gap={2}>
-                                      <Badge colorPalette="blue">{item.source}</Badge>
-                                      <Text color="fg.muted" fontSize="xs">
-                                        {extractDomain(item.url)}
-                                      </Text>
-                                      <Spacer />
-                                      <IconButton asChild aria-label="Open" size="xs" variant="subtle">
-                                        <Link href={item.url} target="_blank" rel="noopener noreferrer">
-                                          Read
-                                        </Link>
-                                      </IconButton>
-                                    </HStack>
-                                  </VStack>
-                                  {idx < group.items.slice(2).length - 1 && <Separator my={3} />}
-                                </Box>
-                              ))}
-                            </VStack>
-                          </Collapsible.Content>
-                        </Collapsible.Root>
-                      )}
-                    </Card.Body>
-                  </Card.Root>
+                  <GroupCard key={group.id} group={group} colorPalette={topicToPalette(group.topic)} />
                 ))}
               </SimpleGrid>
               <HStack mt={8} justify="center" gap={4}>
@@ -418,38 +200,11 @@ function topicToPalette(topic: string):
   return "gray";
 }
 
-function extractDomain(url: string): string {
-  try {
-    const u = new URL(url);
-    return u.hostname.replace(/^www\./, "");
-  } catch {
-    return "";
-  }
-}
-
-function extractDomainFromSource(source: string): string {
-  // best-effort mapping; for favicon service any domain works
-  // use source as-is if it looks like a domain
-  if (/^[\w.-]+\.[A-Za-z]{2,}$/.test(source)) return source;
-  // map some known sources
-  const map: Record<string, string> = {
-    "BBC World": "bbc.com",
-    "Reuters Top News": "reuters.com",
-    "The Verge": "theverge.com",
-    "Hacker News": "news.ycombinator.com",
-  };
-  return map[source] ?? source;
-}
-
 function toggleSourceValue(set: Set<string>, value: string): Set<string> {
   const next = new Set(set);
   if (next.has(value)) next.delete(value);
   else next.add(value);
   return next;
-}
-
-function toggleSource(value: string) {
-  // placeholder; replaced at runtime by closure below
 }
 
 
