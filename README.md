@@ -1,5 +1,5 @@
 <div align="center">
-  <h1>🗞️ News Digest • AI‑powered daily brief</h1>
+  <h1>🗞️ newsboy • AI‑powered daily brief</h1>
   <p>Next.js + Chakra UI v3 • OpenAI 4o‑mini summarization • Embedding‑based clustering • Topic & source filtering • Weekly window • Pagination</p>
   <p>
     <a href="https://nextjs.org">Next.js</a> ·
